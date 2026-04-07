@@ -400,12 +400,44 @@
     box-shadow: 0 4px 20px rgba(16,185,129,.4);
   }
 
-  @media (max-width: 600px) {
-    td { padding: 10px 8px; font-size: 12px; }
-    .td-link a { padding: 5px 8px; font-size: 11px; }
-    .wrapper { padding: 28px 12px 100px; }
+  /* スマホ: コード列を非表示 → 企業名セルに統合 */
+  .col-code { /* PCでは通常表示 */ }
+  .name-code {
+    display: none; /* PCでは非表示 */
+  }
+
+  @media (max-width: 640px) {
+    /* コード列を丸ごと非表示 */
+    .col-code { display: none; }
+
+    /* 企業名の下にコードを小さく表示 */
+    .name-code {
+      display: block;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: var(--accent);
+      margin-top: 2px;
+      opacity: 0.8;
+    }
+
+    /* テーブル全体を詰める */
+    td { padding: 10px 10px; font-size: 13px; }
+    th { padding: 8px 10px; font-size: 11px; }
+
+    /* 動画ボタンをコンパクトに */
+    .td-link a {
+      padding: 6px 10px;
+      font-size: 11px;
+    }
+    .td-link a::before { display: none; } /* ▶ 非表示 */
+
+    /* 全体余白 */
+    .wrapper { padding: 24px 12px 100px; }
     h1 { font-size: 22px; }
     .fab-today { bottom: 20px; right: 16px; padding: 13px 24px; font-size: 14px; }
+
+    /* ソートボタン */
+    .sort-btn { padding: 5px 10px; font-size: 11px; }
   }
 </style>
 </head>
@@ -456,7 +488,7 @@
       <thead id="jp-head">
         <tr>
           <th onclick="sortBy('date')">決算日</th>
-          <th onclick="sortBy('code')">コード</th>
+          <th onclick="sortBy('code')" class="col-code">コード</th>
           <th onclick="sortBy('name')">企業名</th>
           <th id="th-link-jp">動画</th>
         </tr>
@@ -464,7 +496,7 @@
       <thead id="us-head" style="display:none">
         <tr>
           <th onclick="sortBy('date')">決算日</th>
-          <th onclick="sortBy('code')">Ticker</th>
+          <th onclick="sortBy('code')" class="col-code">Ticker</th>
           <th onclick="sortBy('name')">企業名</th>
           <th id="th-link-us">動画</th>
         </tr>
@@ -647,8 +679,8 @@ function renderTable() {
       return `
       <tr class="${today ? 'today-row' : ''}" style="animation-delay:${i*30}ms">
         <td class="td-date">${fmtDate(r.date)}${today ? '<br><span class="today-badge">TODAY</span>' : ''}</td>
-        <td class="td-code">${r.code}</td>
-        <td class="td-name">${r.name}</td>
+        <td class="td-code col-code">${r.code}</td>
+        <td class="td-name">${r.name}<span class="name-code">${r.code}</span></td>
         <td class="td-link">${r.url
           ? `<a href="${r.url}" target="_blank" rel="noopener">${linkLabel}</a>`
           : `<span style="color:var(--text-muted);font-size:12px;font-family:var(--font-mono)">${emptyLabel}</span>`}
@@ -661,8 +693,8 @@ function renderTable() {
       return `
       <tr class="${today ? 'today-row' : ''}" style="animation-delay:${i*30}ms">
         <td class="td-date">${fmtDate(r.date)}${today ? '<br><span class="today-badge">TODAY</span>' : ''}</td>
-        <td class="td-code">$${r.ticker}</td>
-        <td class="td-name">${r.name}</td>
+        <td class="td-code col-code">$${r.ticker}</td>
+        <td class="td-name">${r.name}<span class="name-code">${r.ticker}</span></td>
         <td class="td-link">${r.url
           ? `<a href="${r.url}" target="_blank" rel="noopener">${linkLabel}</a>`
           : `<span style="color:var(--text-muted);font-size:12px;font-family:var(--font-mono)">— not uploaded</span>`}
