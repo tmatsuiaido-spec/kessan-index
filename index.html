@@ -373,8 +373,39 @@
     font-family: var(--font-mono);
   }
 
+  /* ===== FLOATING TODAY BUTTON ===== */
+  .fab-today {
+    position: fixed;
+    bottom: 28px;
+    right: 20px;
+    z-index: 100;
+    padding: 12px 22px;
+    border-radius: 50px;
+    background: var(--surface2);
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(0,0,0,.4);
+    transition: all .2s;
+    font-family: var(--font-mono);
+    letter-spacing: .05em;
+  }
+  .fab-today:hover { transform: translateY(-2px); }
+  .fab-today.active {
+    background: var(--accent2);
+    color: #fff;
+    border-color: var(--accent2);
+    box-shadow: 0 4px 20px rgba(16,185,129,.4);
+  }
+
   @media (max-width: 600px) {
-    td { padding: 11px 12px; }
+    td { padding: 10px 8px; font-size: 12px; }
+    .td-link a { padding: 5px 8px; font-size: 11px; }
+    .wrapper { padding: 28px 12px 100px; }
+    h1 { font-size: 22px; }
+    .fab-today { bottom: 20px; right: 16px; padding: 13px 24px; font-size: 14px; }
   }
 </style>
 </head>
@@ -402,7 +433,6 @@
       <span class="search-icon">⌕</span>
       <input type="text" id="searchInput" placeholder="企業名 or コードで検索…" oninput="renderTable()">
     </div>
-    <button class="filter-btn" id="todayBtn" onclick="toggleToday()">📍 今日だけ</button>
     <button class="filter-btn" onclick="clearAll()">クリア</button>
   </div>
 
@@ -444,6 +474,8 @@
   </div>
 
   <footer>投稿後に自動更新 · データは自動生成されます</footer>
+
+  <button class="fab-today" id="todayBtn" onclick="toggleToday()">📍 今日だけ</button>
 
 </div>
 <script>
@@ -516,6 +548,11 @@ function resetSortUI() {
 function toDateObj(str) {
   const [y, m, d] = str.split(/[-\/]/);
   return new Date(y, m - 1, d);
+}
+
+function fmtDate(dateStr) {
+  const p = dateStr.split('-');
+  return `'${p[0].slice(2)}/${p[1]}/${p[2]}`;
 }
 
 function isToday(dateStr) {
@@ -609,7 +646,7 @@ function renderTable() {
       const today = isToday(r.date);
       return `
       <tr class="${today ? 'today-row' : ''}" style="animation-delay:${i*30}ms">
-        <td class="td-date">${r.date}${today ? '<span class="today-badge">TODAY</span>' : ''}</td>
+        <td class="td-date">${fmtDate(r.date)}${today ? '<span class="today-badge">TODAY</span>' : ''}</td>
         <td class="td-code">${r.code}</td>
         <td class="td-name">${r.name}</td>
         <td class="td-link">${r.url
@@ -623,7 +660,7 @@ function renderTable() {
       const today = isToday(r.date);
       return `
       <tr class="${today ? 'today-row' : ''}" style="animation-delay:${i*30}ms">
-        <td class="td-date">${r.date}${today ? '<span class="today-badge">TODAY</span>' : ''}</td>
+        <td class="td-date">${fmtDate(r.date)}${today ? '<span class="today-badge">TODAY</span>' : ''}</td>
         <td class="td-code">$${r.ticker}</td>
         <td class="td-name">${r.name}</td>
         <td class="td-link">${r.url
