@@ -354,7 +354,7 @@
     background: rgba(59,130,246,.06);
   }
 
-  .td-link a::before { content: '▶'; font-size: 9px; }
+  .td-link a::before { content: ''; }
 
   .empty-state {
     text-align: center;
@@ -420,24 +420,32 @@
       opacity: 0.8;
     }
 
-    /* テーブル全体を詰める */
-    td { padding: 10px 10px; font-size: 13px; }
-    th { padding: 8px 10px; font-size: 11px; }
+    /* 全体余白・横スクロール防止 */
+    .wrapper { padding: 24px 12px 100px; overflow-x: hidden; }
+    h1 { font-size: 22px; }
 
-    /* 動画ボタンをコンパクトに */
+    /* 検索バー：入力欄を全幅に、クリアボタンを右端に */
+    .search-bar { gap: 8px; }
+    .search-input-wrap { min-width: 0; flex: 1; }
+    .filter-btn { padding: 10px 12px; font-size: 12px; white-space: nowrap; }
+
+    /* ソートボタン：コンパクトに */
+    .sort-row { gap: 4px; }
+    .sort-btn { padding: 5px 8px; font-size: 11px; }
+
+    /* テーブル */
+    td { padding: 10px 8px; font-size: 13px; }
+    th { padding: 8px 8px; font-size: 11px; }
+
+    /* 動画ボタン：▶だけに */
     .td-link a {
       padding: 6px 10px;
-      font-size: 11px;
+      font-size: 12px;
     }
-    .td-link a::before { display: none; } /* ▶ 非表示 */
+    .td-link a .link-label { display: none; }
 
-    /* 全体余白 */
-    .wrapper { padding: 24px 12px 100px; }
-    h1 { font-size: 22px; }
+    /* 今日だけボタン */
     .fab-today { bottom: 20px; right: 16px; padding: 13px 24px; font-size: 14px; }
-
-    /* ソートボタン */
-    .sort-btn { padding: 5px 10px; font-size: 11px; }
   }
 </style>
 </head>
@@ -656,7 +664,7 @@ function renderTable() {
   const tbody = document.getElementById('tableBody');
   document.getElementById('countNum').textContent = rows.length;
 
-  const linkLabel = currentSection === 'yt' ? '動画を見る' : '記事を読む';
+  const linkLabel = currentSection === 'yt' ? '▶ <span class="link-label">動画を見る</span>' : '▶ <span class="link-label">記事を読む</span>';
   const emptyLabel = '— 準備中';
   const thLabel = currentSection === 'yt' ? '動画' : '記事';
   ['th-link-jp', 'th-link-us'].forEach(id => {
