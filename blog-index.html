@@ -1,0 +1,1330 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>決算図書館</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ── CSS Variables ── */
+:root {
+  color-scheme: light dark;
+  --bg:        #f0f2f7;
+  --surface:   #ffffff;
+  --surface2:  #f8f9fc;
+  --border:    #e2e8f0;
+  --border2:   #cbd5e1;
+  --accent:    #2563eb;
+  --accent2:   #059669;
+  --accent3:   #d97706;
+  --accent4:   #7c3aed;
+  --accent5:   #db2777;
+  --danger:    #dc2626;
+  --sat:       #0891b2;
+  --text:      #1e293b;
+  --text-muted:#64748b;
+  --text-dim:  #94a3b8;
+  --today-bg:  #eff6ff;
+  --today-bd:  #2563eb;
+  --sel-bg:    #dbeafe;
+  --font-body: 'Noto Sans JP', sans-serif;
+  --font-mono: 'DM Mono', monospace;
+  --shadow:    0 1px 3px rgba(0,0,0,.07), 0 4px 12px rgba(0,0,0,.05);
+  --radius:    12px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg:        #0a0e1a;
+    --surface:   #111827;
+    --surface2:  #1a2235;
+    --border:    #1e2d45;
+    --border2:   #2d3f58;
+    --accent:    #3b82f6;
+    --accent2:   #10b981;
+    --accent3:   #f59e0b;
+    --accent4:   #8b5cf6;
+    --accent5:   #ec4899;
+    --danger:    #ef4444;
+    --sat:       #22d3ee;
+    --text:      #e2e8f0;
+    --text-muted:#64748b;
+    --text-dim:  #94a3b8;
+    --today-bg:  #1e3a5f;
+    --today-bd:  #3b82f6;
+    --sel-bg:    #1e3a5f;
+    --shadow:    0 1px 4px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.2);
+  }
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--bg); color:var(--text); font-family:var(--font-body); min-height:100vh; }
+.wrapper { max-width:1320px; margin:0 auto; padding:82px 18px 80px; /* 上54px=navbar+28px */ }
+
+/* ── Header ── */
+.site-header { display:flex; align-items:center; gap:14px; margin-bottom:20px; }
+.site-logo { width:46px; height:46px; border-radius:11px; background:var(--surface); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:22px; flex-shrink:0; box-shadow:var(--shadow); overflow:hidden; }
+.site-logo img { width:100%; height:100%; object-fit:cover; display:none; }
+.eyebrow { font-family:var(--font-mono); font-size:10px; letter-spacing:.18em; color:var(--accent); text-transform:uppercase; margin-bottom:2px; }
+h1 { font-size:clamp(17px,2.6vw,24px); font-weight:700; letter-spacing:-.02em; }
+h1 span { background:linear-gradient(90deg,var(--accent),var(--accent2)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+.back-link { margin-left:auto; font-family:var(--font-mono); font-size:11px; color:var(--text-muted); text-decoration:none; transition:color .2s; flex-shrink:0; }
+.back-link:hover { color:var(--accent); }
+
+/* ═══════════════════════════════════════
+   おすすめカテゴリ セクション
+   ═══════════════════════════════════════ */
+/* ═══════════════════════════════════════
+   MEGA NAV — スティッキーナビバー
+   ═══════════════════════════════════════ */
+.mega-nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 1000;
+  height: 54px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 1px 8px rgba(0,0,0,.08);
+}
+
+.nav-inner {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 0 18px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+/* ロゴ */
+.nav-logo {
+  display: flex; align-items: center; gap: 8px;
+  text-decoration: none; margin-right: 20px; flex-shrink: 0;
+}
+.nav-logo-icon { font-size: 20px; }
+.nav-logo-text { font-size: 15px; font-weight: 700; color: var(--text); }
+.nav-logo-text span {
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+
+/* ── カテゴリナビ（横スクロール） ── */
+.nav-cats {
+  display: flex;
+  height: 100%;
+  overflow-x: auto;
+  overflow-y: visible; /* mega menu がはみ出せるよう */
+  -webkit-overflow-scrolling: touch; /* Safariの慣性スクロール */
+  scroll-behavior: smooth;
+  /* スクロールバー非表示 */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.nav-cats::-webkit-scrollbar { display: none; }
+
+/* フェードエッジ（右端に消えていくグラデ） */
+.nav-cats-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  overflow: visible;
+}
+.nav-cats-wrap::after {
+  content: '';
+  position: absolute;
+  top: 0; right: 0; bottom: 0;
+  width: 40px;
+  background: linear-gradient(to right, transparent, var(--surface));
+  pointer-events: none;
+  z-index: 1;
+}
+
+.nav-item {
+  position: static;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0; /* 縮まない → スクロールで表示 */
+}
+
+.nav-btn {
+  height: 100%;
+  padding: 0 14px;
+  background: none; border: none;
+  color: var(--text-muted);
+  font-size: 13px; font-weight: 500;
+  font-family: var(--font-body);
+  cursor: pointer;
+  display: flex; align-items: center; gap: 4px;
+  transition: color .15s;
+  position: relative;
+  white-space: nowrap;
+}
+.nav-btn::after {
+  content: '';
+  position: absolute; bottom: 0; left: 14px; right: 14px; height: 2px;
+  transform: scaleX(0);
+  transition: transform .2s ease;
+  border-radius: 2px 2px 0 0;
+}
+.nav-item:hover .nav-btn { color: var(--text); }
+.nav-item:hover .nav-btn::after { transform: scaleX(1); }
+
+.nav-chevron-icon {
+  font-size: 9px; color: var(--text-muted);
+  transition: transform .2s;
+}
+.nav-item:hover .nav-chevron-icon { transform: rotate(180deg); }
+
+/* ── MEGA MENU ── */
+.mega-menu {
+  position: fixed;
+  top: 54px; left: 0; right: 0;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 12px 40px rgba(0,0,0,.12);
+  z-index: 999;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-8px);
+  transition: opacity .18s ease, transform .18s ease;
+}
+.nav-item:hover .mega-menu {
+  opacity: 1;
+  pointer-events: all;
+  transform: translateY(0);
+}
+
+.mega-inner {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 20px 18px 24px;
+  display: grid;
+  grid-template-columns: 135px 1fr;  /* 画像幅と揃える */
+  gap: 20px;
+  align-items: start;
+}
+
+/* ヒーロー画像（縦長 9:16） */
+.mega-hero {
+  position: relative;
+  width: 135px;          /* 幅固定 */
+  aspect-ratio: 9 / 16;  /* 高さは自動で 240px */
+  border-radius: 10px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.mega-hero img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  object-position: center center;
+  transition: transform .3s ease;
+}
+.nav-item:hover .mega-hero img { transform: scale(1.04); }
+
+/* 画像なしフォールバック */
+.mega-hero-fallback {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  font-size: 36px; gap: 8px;
+}
+.mega-hero-label {
+  font-size: 12px; font-weight: 700;
+  color: inherit; opacity: .7;
+}
+.mega-hero img.loaded ~ .mega-hero-fallback { display: none; }
+
+/* ── カテゴリ別カラー設定 ── */
+/* 高配当株 */ .nav-item[data-tag="高配当株"] .mega-hero-fallback{background:linear-gradient(160deg,#d1fae5,#a7f3d0);color:#065f46;} .nav-item[data-tag="高配当株"] .nav-btn::after{background:#059669;}
+/* 優待株   */ .nav-item[data-tag="優待株"]   .mega-hero-fallback{background:linear-gradient(160deg,#ede9fe,#ddd6fe);color:#4c1d95;} .nav-item[data-tag="優待株"]   .nav-btn::after{background:#7c3aed;}
+/* 連続増配株*/ .nav-item[data-tag="連続増配株"].mega-hero-fallback{background:linear-gradient(160deg,#ecfdf5,#bbf7d0);color:#14532d;} .nav-item[data-tag="連続増配株"].nav-btn::after{background:#16a34a;}
+/* 減配リスク株*/ .nav-item[data-tag="減配リスク株"].mega-hero-fallback{background:linear-gradient(160deg,#fff1f2,#fecdd3);color:#9f1239;} .nav-item[data-tag="減配リスク株"].nav-btn::after{background:#e11d48;}
+/* 割安株   */ .nav-item[data-tag="割安株"]   .mega-hero-fallback{background:linear-gradient(160deg,#fef3c7,#fde68a);color:#78350f;} .nav-item[data-tag="割安株"]   .nav-btn::after{background:#d97706;}
+/* 成長株   */ .nav-item[data-tag="成長株"]   .mega-hero-fallback{background:linear-gradient(160deg,#dbeafe,#bfdbfe);color:#1e3a8a;} .nav-item[data-tag="成長株"]   .nav-btn::after{background:#2563eb;}
+/* 大型株   */ .nav-item[data-tag="大型株"]   .mega-hero-fallback{background:linear-gradient(160deg,#f0fdf4,#dcfce7);color:#14532d;} .nav-item[data-tag="大型株"]   .nav-btn::after{background:#22c55e;}
+/* 小型株   */ .nav-item[data-tag="小型株"]   .mega-hero-fallback{background:linear-gradient(160deg,#fdf4ff,#f3e8ff);color:#581c87;} .nav-item[data-tag="小型株"]   .nav-btn::after{background:#a855f7;}
+/* 上方修正 */ .nav-item[data-tag="上方修正"] .mega-hero-fallback{background:linear-gradient(160deg,#eff6ff,#dbeafe);color:#1e3a8a;} .nav-item[data-tag="上方修正"] .nav-btn::after{background:#3b82f6;}
+/* 下方修正 */ .nav-item[data-tag="下方修正"] .mega-hero-fallback{background:linear-gradient(160deg,#fff7ed,#fed7aa);color:#7c2d12;} .nav-item[data-tag="下方修正"] .nav-btn::after{background:#f97316;}
+
+/* 記事グリッド（3列×2行）*/
+.mega-articles {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  align-content: start;
+}
+
+/* 記事ミニカード */
+.mega-art {
+  display: flex; gap: 10px; align-items: center;
+  text-decoration: none;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface2);
+  transition: background .15s, border-color .15s, transform .15s;
+}
+.mega-art:hover {
+  background: color-mix(in srgb,var(--accent) 5%,transparent);
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+
+/* サムネイル */
+.mega-thumb {
+  width: 52px; height: 52px; border-radius: 8px;
+  flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+  font-size: 18px; font-weight: 700; color: white;
+  letter-spacing: -.02em;
+}
+
+.mega-art-info { min-width: 0; flex: 1; }
+.mega-art-name {
+  font-size: 12px; font-weight: 700; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  margin-bottom: 3px;
+}
+.mega-art-meta {
+  font-family: var(--font-mono); font-size: 10px; color: var(--text-muted);
+  display: flex; gap: 6px; flex-wrap: wrap;
+}
+
+/* 記事なし表示 */
+.mega-empty {
+  grid-column: 1/-1;
+  padding: 30px 0;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+/* 右側のスペーサー + 検索 */
+.nav-spacer { flex: 1; }
+.nav-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.nav-flag-btn {
+  font-size: 11px; padding: 4px 10px; border: 1px solid var(--border2);
+  border-radius: 14px; background: var(--surface2); color: var(--text-muted);
+  cursor: pointer; transition: all .15s; font-family: var(--font-body); white-space: nowrap;
+}
+.nav-flag-btn.active { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb,var(--accent) 10%,transparent); }
+.nav-flag-btn:hover:not(.active) { color: var(--text); }
+
+.nav-search-wrap { position: relative; }
+.nav-search-icon { position: absolute; left: 9px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 12px; pointer-events: none; }
+.nav-search-input {
+  width: 160px; background: var(--surface2); border: 1px solid var(--border2);
+  border-radius: 16px; color: var(--text); font-family: var(--font-body);
+  font-size: 12px; padding: 6px 10px 6px 26px; outline: none;
+  transition: width .25s ease, border-color .2s;
+}
+.nav-search-input:focus { width: 220px; border-color: var(--accent); }
+.nav-search-input::placeholder { color: var(--text-muted); }
+
+/* モバイルではナビ非表示 → top-controls で代替 */
+@media (max-width: 768px) {
+  .mega-nav { display: none; }
+  .wrapper { padding-top: 28px !important; }
+}
+
+/* ── Top controls (simplified) ── */
+.top-controls { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:16px; }
+.flag-btn { font-size:12px; padding:6px 14px; border:1px solid var(--border2); border-radius:20px; background:var(--surface); color:var(--text-muted); cursor:pointer; transition:all .18s; font-family:var(--font-body); white-space:nowrap; box-shadow:var(--shadow); }
+.flag-btn.active { border-color:var(--accent); color:var(--accent); background:color-mix(in srgb,var(--accent) 10%,transparent); }
+.flag-btn:hover:not(.active) { color:var(--text); }
+.search-wrap { flex:1; min-width:160px; position:relative; }
+.search-icon { position:absolute; left:11px; top:50%; transform:translateY(-50%); color:var(--text-muted); font-size:13px; pointer-events:none; }
+input[type="text"] { width:100%; background:var(--surface); border:1px solid var(--border2); border-radius:20px; color:var(--text); font-family:var(--font-body); font-size:13px; padding:8px 12px 8px 32px; outline:none; transition:border-color .2s,box-shadow .2s; box-shadow:var(--shadow); }
+input[type="text"]:focus { border-color:var(--accent); box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 12%,transparent); }
+input[type="text"]::placeholder { color:var(--text-muted); }
+.clear-btn { background:var(--surface); border:1px solid var(--border2); border-radius:20px; color:var(--text-muted); font-family:var(--font-body); font-size:12px; padding:8px 14px; cursor:pointer; transition:all .18s; box-shadow:var(--shadow); white-space:nowrap; }
+.clear-btn:hover { border-color:var(--accent); color:var(--accent); }
+
+/* ── Main layout ── */
+.layout { display:grid; grid-template-columns:286px 1fr; gap:14px; align-items:start; }
+
+/* ═══════════════════════════════════════
+   SIDEBAR — collapsible cards
+   ═══════════════════════════════════════ */
+/* overflow-y:auto を外す → 子の overflow:hidden と競合してグシャになるため */
+.sidebar { display:flex; flex-direction:column; gap:10px; position:sticky; top:14px; }
+
+/* Collapsible card */
+.s-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; box-shadow:var(--shadow); }
+
+.s-card-head {
+  display:flex; align-items:center; gap:8px;
+  padding:10px 12px 10px 14px;
+  cursor:pointer; user-select:none;
+  transition:background .15s;
+}
+.s-card-head:hover { background:color-mix(in srgb,var(--accent) 4%,transparent); }
+
+.s-card-icon { font-size:13px; flex-shrink:0; }
+.s-card-title { font-family:var(--font-mono); font-size:10px; letter-spacing:.1em; color:var(--text-muted); text-transform:uppercase; flex:1; }
+
+/* Chevron ─ rotates when collapsed */
+.s-chevron {
+  width:20px; height:20px; border-radius:5px; border:1px solid var(--border2);
+  background:var(--surface2); display:flex; align-items:center; justify-content:center;
+  flex-shrink:0; transition:background .15s, border-color .15s;
+}
+.s-chevron svg { transition:transform .22s ease; }
+.s-card.collapsed .s-chevron svg { transform:rotate(-90deg); }
+.s-card-head:hover .s-chevron { border-color:var(--accent); background:color-mix(in srgb,var(--accent) 8%,transparent); }
+
+/* Body ─ grid row collapse trick */
+/* overflow:hidden は s-card-body に置かない → sidebar の overflow コンテキストと競合するため */
+/* s-card-inner の overflow:hidden + min-height:0 だけで collapse は正常に動く */
+.s-card-body {
+  display:grid;
+  grid-template-rows:1fr;
+  transition:grid-template-rows .22s ease;
+}
+.s-card.collapsed .s-card-body { grid-template-rows:0fr; }
+.s-card-inner {
+  overflow:hidden;  /* collapse に必須 */
+  min-height:0;     /* grid 0fr 動作に必須 */
+  border-top:1px solid var(--border);
+}
+.s-card-inner-pad { padding:12px 14px; }
+
+/* ── Calendar ── */
+.cal-nav { display:flex; align-items:center; justify-content:space-between; padding:0 0 10px; }
+.cal-nav-btn { background:none; border:none; color:var(--text-muted); font-size:16px; cursor:pointer; padding:1px 7px; border-radius:5px; transition:all .15s; }
+.cal-nav-btn:hover { color:var(--accent); background:color-mix(in srgb,var(--accent) 8%,transparent); }
+.cal-month { font-size:12px; font-weight:700; color:var(--text); }
+.cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:1px; }
+.cal-dow { font-family:var(--font-mono); font-size:9px; text-align:center; padding:2px 0 4px; }
+.cal-dow.sun { color:var(--danger); } .cal-dow.sat { color:var(--sat); }
+.cal-cell { text-align:center; border-radius:5px; cursor:pointer; transition:background .12s; min-height:30px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; }
+.cal-cell:hover:not(.empty):not(.today) { background:color-mix(in srgb,var(--accent) 8%,transparent); }
+.cal-cell.empty { pointer-events:none; }
+.cal-num { font-family:var(--font-mono); font-size:10px; line-height:1; }
+.cal-cell.sun .cal-num,.cal-cell.holiday .cal-num { color:var(--danger); }
+.cal-cell.sat .cal-num { color:var(--sat); }
+.cal-cell.today { background:var(--today-bg); outline:2px solid var(--today-bd); outline-offset:-1px; }
+.cal-cell.today .cal-num { color:var(--today-bd); font-weight:700; }
+.cal-cell.selected:not(.today) { background:var(--sel-bg); }
+.cal-dot { width:3px; height:3px; border-radius:50%; background:var(--accent2); }
+
+/* ── Tags ── */
+.tag-grid { display:flex; flex-wrap:wrap; gap:5px; }
+.tag-btn {
+  font-size:11px; padding:4px 10px; border-radius:6px; cursor:pointer; transition:all .18s;
+  font-family:var(--font-body); white-space:nowrap; border:1px solid transparent; box-shadow:var(--shadow);
+}
+.tag-btn[data-tag="高配当株"]  { background:color-mix(in srgb,var(--accent2) 12%,var(--surface)); color:var(--accent2); border-color:color-mix(in srgb,var(--accent2) 28%,transparent); }
+.tag-btn[data-tag="バリュー株"] { background:color-mix(in srgb,var(--accent3) 12%,var(--surface)); color:var(--accent3); border-color:color-mix(in srgb,var(--accent3) 28%,transparent); }
+.tag-btn[data-tag="成長株"]    { background:color-mix(in srgb,var(--accent)  12%,var(--surface)); color:var(--accent);  border-color:color-mix(in srgb,var(--accent)  28%,transparent); }
+.tag-btn[data-tag="優待株"]    { background:color-mix(in srgb,var(--accent4) 12%,var(--surface)); color:var(--accent4); border-color:color-mix(in srgb,var(--accent4) 28%,transparent); }
+.tag-btn[data-tag="割安株"]    { background:color-mix(in srgb,var(--accent5) 12%,var(--surface)); color:var(--accent5); border-color:color-mix(in srgb,var(--accent5) 28%,transparent); }
+.tag-btn[data-tag="テーマ株"]      { background:color-mix(in srgb,var(--accent) 12%,var(--surface)); color:var(--accent); border-color:color-mix(in srgb,var(--accent) 28%,transparent); }
+.tag-btn[data-tag="ディフェンシブ"] { background:color-mix(in srgb,var(--sat) 12%,var(--surface)); color:var(--sat); border-color:color-mix(in srgb,var(--sat) 28%,transparent); }
+.tag-btn[data-tag="景気敏感"]  { background:color-mix(in srgb,var(--danger) 12%,var(--surface)); color:var(--danger); border-color:color-mix(in srgb,var(--danger) 28%,transparent); }
+.tag-btn[data-tag="その他"]    { background:var(--surface2); color:var(--text-muted); border-color:var(--border2); }
+.tag-btn.off { opacity:.28; filter:grayscale(.8); text-decoration:line-through; }
+
+/* ── Size ── */
+.size-grid { display:flex; flex-wrap:wrap; gap:5px; }
+.size-btn { font-size:11px; padding:5px 10px; border:1px solid var(--border2); border-radius:6px; background:var(--surface2); color:var(--text-dim); cursor:pointer; transition:all .18s; font-family:var(--font-mono); white-space:nowrap; }
+.size-btn.on  { color:var(--text); border-color:var(--border2); }
+.size-btn.off { opacity:.28; text-decoration:line-through; }
+
+/* ── Dual range ── */
+.range-row { margin-bottom:14px; }
+.range-row:last-child { margin-bottom:0; }
+.range-label { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:6px; }
+.range-label-name { font-size:11px; color:var(--text); font-weight:500; }
+.range-label-val { font-family:var(--font-mono); font-size:10px; color:var(--accent); background:color-mix(in srgb,var(--accent) 10%,transparent); padding:1px 6px; border-radius:4px; }
+.dual-range { position:relative; height:20px; display:flex; align-items:center; }
+.dr-track { position:absolute; left:0; right:0; height:4px; background:var(--border2); border-radius:2px; }
+.dr-fill { position:absolute; height:4px; background:var(--accent); border-radius:2px; }
+.dr-input { position:absolute; width:100%; -webkit-appearance:none; appearance:none; background:transparent; outline:none; pointer-events:none; height:0; margin:0; }
+.dr-input::-webkit-slider-thumb { -webkit-appearance:none; width:15px; height:15px; border-radius:50%; background:var(--surface); border:2px solid var(--accent); cursor:pointer; pointer-events:all; box-shadow:0 1px 4px rgba(0,0,0,.18); transition:transform .12s,box-shadow .12s; }
+.dr-input::-webkit-slider-thumb:hover { transform:scale(1.2); box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 18%,transparent); }
+.dr-input::-moz-range-thumb { width:15px; height:15px; border-radius:50%; background:var(--surface); border:2px solid var(--accent); cursor:pointer; pointer-events:all; box-shadow:0 1px 4px rgba(0,0,0,.18); }
+
+/* ═══════════════════════════════════════
+   PRESETS
+   ═══════════════════════════════════════ */
+.preset-list { display:flex; flex-direction:column; gap:7px; }
+
+.preset-row {
+  display:grid;
+  grid-template-columns:auto 1fr auto auto;
+  align-items:center;
+  gap:6px;
+  padding:7px 10px;
+  border:1px solid var(--border2);
+  border-radius:8px;
+  background:var(--surface2);
+  transition:border-color .15s;
+}
+.preset-row:hover { border-color:var(--accent); }
+
+.preset-slot {
+  font-family:var(--font-mono); font-size:11px; font-weight:700;
+  color:var(--surface); background:var(--text-muted);
+  width:18px; height:18px; border-radius:4px;
+  display:flex; align-items:center; justify-content:center;
+  flex-shrink:0; font-size:10px;
+}
+.preset-row.has-data .preset-slot { background:var(--accent); }
+
+.preset-name {
+  font-size:12px; background:transparent; border:none; outline:none;
+  color:var(--text); font-family:var(--font-body); width:100%;
+  cursor:text; min-width:0;
+}
+.preset-name::placeholder { color:var(--text-muted); }
+
+.preset-btn {
+  font-size:10px; padding:3px 8px; border-radius:5px;
+  border:1px solid var(--border2); background:var(--surface);
+  color:var(--text-muted); cursor:pointer; transition:all .15s;
+  font-family:var(--font-mono); white-space:nowrap; flex-shrink:0;
+}
+.preset-btn.load:hover { border-color:var(--accent2); color:var(--accent2); background:color-mix(in srgb,var(--accent2) 8%,transparent); }
+.preset-btn.save:hover { border-color:var(--accent); color:var(--accent); background:color-mix(in srgb,var(--accent) 8%,transparent); }
+.preset-btn.load:disabled { opacity:.3; cursor:default; }
+
+/* Save flash animation */
+@keyframes saveFlash { 0%,100%{background:transparent} 50%{background:color-mix(in srgb,var(--accent2) 20%,transparent)} }
+.preset-row.saving { animation:saveFlash .4s ease; }
+
+/* ── Article panel ── */
+.article-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; box-shadow:var(--shadow); }
+.panel-header { display:flex; align-items:center; gap:10px; padding:12px 16px; border-bottom:1px solid var(--border); background:var(--surface2); }
+.panel-date-label { font-size:14px; font-weight:700; color:var(--text); }
+.panel-count { font-family:var(--font-mono); font-size:11px; color:var(--text-muted); }
+.panel-clear { margin-left:auto; font-family:var(--font-mono); font-size:10px; color:var(--text-muted); background:none; border:none; cursor:pointer; transition:color .15s; }
+.panel-clear:hover { color:var(--accent); }
+
+.article-list { overflow-y:visible; }
+
+/* ── ページネーション ── */
+.pagination {
+  display:flex; align-items:center; justify-content:center;
+  gap:6px; padding:16px 16px 18px;
+  border-top:1px solid var(--border);
+  flex-wrap:wrap;
+}
+.pg-btn {
+  min-width:34px; height:34px; padding:0 10px;
+  border:1px solid var(--border2); border-radius:7px;
+  background:var(--surface2); color:var(--text-muted);
+  font-family:var(--font-mono); font-size:12px;
+  cursor:pointer; transition:all .15s;
+  display:flex; align-items:center; justify-content:center;
+}
+.pg-btn:hover:not(:disabled) { border-color:var(--accent); color:var(--accent); background:color-mix(in srgb,var(--accent) 6%,transparent); }
+.pg-btn.active { border-color:var(--accent); color:var(--accent); background:color-mix(in srgb,var(--accent) 10%,transparent); font-weight:700; }
+.pg-btn:disabled { opacity:.3; cursor:default; }
+.pg-ellipsis { font-family:var(--font-mono); font-size:12px; color:var(--text-muted); padding:0 4px; }
+
+.article-row { display:grid; grid-template-columns:8px 1fr auto; gap:10px; align-items:center; padding:11px 16px; border-bottom:1px solid var(--border); transition:background .1s; animation:fadeIn .22s ease both; }
+.article-row:last-child { border-bottom:none; }
+.article-row:hover { background:color-mix(in srgb,var(--accent) 3%,transparent); }
+@keyframes fadeIn { from{opacity:0;transform:translateY(3px)} to{opacity:1;transform:translateY(0)} }
+
+.type-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; margin-top:1px; }
+.type-dot.高配当株  { background:var(--accent2); }
+.type-dot.バリュー株 { background:var(--accent3); }
+.type-dot.成長株    { background:var(--accent); }
+.type-dot.優待株    { background:var(--accent4); }
+.type-dot.割安株    { background:var(--accent5); }
+.type-dot.ディフェンシブ { background:var(--sat); }
+.type-dot.景気敏感  { background:var(--danger); }
+.type-dot.その他    { background:var(--text-dim); }
+
+.article-top { display:flex; align-items:baseline; gap:6px; margin-bottom:2px; flex-wrap:wrap; }
+.article-name { font-size:13px; font-weight:700; color:var(--text); }
+.article-code { font-family:var(--font-mono); font-size:10px; color:var(--text-muted); }
+.article-period { font-family:var(--font-mono); font-size:9px; color:var(--text-muted); border:1px solid var(--border2); padding:1px 4px; border-radius:3px; }
+.article-tag { font-size:9px; padding:1px 5px; border-radius:3px; font-family:var(--font-mono); }
+.article-tag.高配当株  { background:color-mix(in srgb,var(--accent2) 12%,transparent); color:var(--accent2); }
+.article-tag.バリュー株 { background:color-mix(in srgb,var(--accent3) 12%,transparent); color:var(--accent3); }
+.article-tag.成長株    { background:color-mix(in srgb,var(--accent)  12%,transparent); color:var(--accent); }
+.article-tag.優待株    { background:color-mix(in srgb,var(--accent4) 12%,transparent); color:var(--accent4); }
+.article-tag.割安株    { background:color-mix(in srgb,var(--accent5) 12%,transparent); color:var(--accent5); }
+.article-tag.ディフェンシブ { background:color-mix(in srgb,var(--sat) 12%,transparent); color:var(--sat); }
+.article-tag.景気敏感  { background:color-mix(in srgb,var(--danger) 12%,transparent); color:var(--danger); }
+.article-tag.その他    { background:var(--surface2); color:var(--text-muted); }
+
+.article-metrics { display:flex; gap:8px; flex-wrap:wrap; }
+.metric { font-family:var(--font-mono); font-size:10px; color:var(--text-muted); }
+.metric b { color:var(--text-dim); font-weight:500; }
+
+.article-actions { display:flex; flex-direction:column; gap:3px; flex-shrink:0; }
+.action-btn { font-size:10px; font-family:var(--font-mono); padding:4px 9px; border-radius:5px; border:1px solid var(--border2); background:var(--surface2); color:var(--text-muted); cursor:pointer; text-decoration:none; display:inline-block; transition:all .14s; white-space:nowrap; text-align:center; }
+.action-btn:hover { border-color:var(--accent); color:var(--accent); background:color-mix(in srgb,var(--accent) 6%,transparent); }
+.action-btn.primary { border-color:var(--accent); color:var(--accent); background:color-mix(in srgb,var(--accent) 8%,transparent); }
+.action-btn.primary:hover { background:color-mix(in srgb,var(--accent) 16%,transparent); }
+
+.empty-state { text-align:center; padding:56px 20px; color:var(--text-muted); }
+.empty-state .icon { font-size:28px; margin-bottom:10px; }
+.empty-state p { font-size:12px; }
+
+@media (max-width:768px) {
+  .layout { grid-template-columns:1fr; }
+  .sidebar { position:static; max-height:none; }
+  .back-link { display:none; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ STICKY MEGA NAV ═══ -->
+<nav class="mega-nav">
+  <div class="nav-inner">
+
+    <!-- ロゴ -->
+    <a class="nav-logo" href="blog-index.html">
+      <span class="nav-logo-icon">📚</span>
+      <span class="nav-logo-text">決算<span>図書館</span></span>
+    </a>
+
+    <!-- カテゴリ（横スクロール＋メガメニュー付き） -->
+    <div class="nav-cats-wrap">
+      <div class="nav-cats" id="navCats"></div>
+    </div>
+
+    <div class="nav-spacer"></div>
+
+    <!-- 右側：国フラグ + 検索 -->
+    <div class="nav-right">
+      <button class="nav-flag-btn active" onclick="showTab('jp')" id="nav-btn-jp">🇯🇵 日本株</button>
+      <button class="nav-flag-btn"        onclick="showTab('us')" id="nav-btn-us">🇺🇸 米国株</button>
+      <div class="nav-search-wrap">
+        <span class="nav-search-icon">⌕</span>
+        <input class="nav-search-input" type="text" placeholder="検索…" oninput="syncNavSearch(this.value)">
+      </div>
+    </div>
+
+  </div>
+</nav>
+
+<div class="wrapper">
+
+<!-- Header -->
+<header class="site-header">
+  <div class="site-logo">
+    <img id="logoImg" src="" alt="">
+    <span id="logoEmoji">📚</span>
+  </div>
+  <div>
+    <p class="eyebrow">Earnings Analysis · Library</p>
+    <h1>決算<span>図書館</span></h1>
+  </div>
+  <a class="back-link" href="index.html">← 動画インデックス</a>
+</header>
+
+<!-- Top controls (flag + search only) -->
+<div class="top-controls">
+  <button class="flag-btn active" onclick="showTab('jp')" id="btn-jp">🇯🇵 日本株</button>
+  <button class="flag-btn"        onclick="showTab('us')" id="btn-us">🇺🇸 米国株</button>
+  <div class="search-wrap">
+    <span class="search-icon">⌕</span>
+    <input type="text" id="searchInput" placeholder="企業名・コード（ひらがな・全角OK）" oninput="render()">
+  </div>
+  <button class="clear-btn" onclick="clearAll()">クリア</button>
+</div>
+
+<!-- Two-column layout -->
+<div class="layout">
+
+  <!-- ═══ LEFT SIDEBAR ═══ -->
+  <aside class="sidebar">
+
+    <!-- 📅 カレンダー -->
+    <div class="s-card" id="card-cal">
+      <div class="s-card-head" onclick="toggleCard('cal')">
+        <span class="s-card-icon">📅</span>
+        <span class="s-card-title">カレンダー</span>
+        <div class="s-chevron">
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+            <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+      </div>
+      <div class="s-card-body">
+        <div class="s-card-inner">
+          <div class="s-card-inner-pad">
+            <div class="cal-nav">
+              <button class="cal-nav-btn" onclick="moveMonth(-1)">‹</button>
+              <span class="cal-month" id="calTitle"></span>
+              <button class="cal-nav-btn" onclick="moveMonth(1)">›</button>
+            </div>
+            <div class="cal-grid" id="calGrid"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 🏷 タグフィルター -->
+    <div class="s-card" id="card-tags">
+      <div class="s-card-head" onclick="toggleCard('tags')">
+        <span class="s-card-icon">🏷</span>
+        <span class="s-card-title">タグフィルター</span>
+        <div class="s-chevron">
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+            <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+      </div>
+      <div class="s-card-body">
+        <div class="s-card-inner">
+          <div class="s-card-inner-pad">
+            <div class="tag-grid" id="typeTags"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 💰 時価総額 -->
+    <div class="s-card" id="card-size">
+      <div class="s-card-head" onclick="toggleCard('size')">
+        <span class="s-card-icon">💰</span>
+        <span class="s-card-title">時価総額フィルター</span>
+        <div class="s-chevron">
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+            <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+      </div>
+      <div class="s-card-body">
+        <div class="s-card-inner">
+          <div class="s-card-inner-pad">
+            <div class="size-grid">
+              <button class="size-btn on" onclick="toggleSize('小型')"   id="sz-小型">小型</button>
+              <button class="size-btn on" onclick="toggleSize('中型')"   id="sz-中型">中型</button>
+              <button class="size-btn on" onclick="toggleSize('大型')"   id="sz-大型">大型</button>
+              <button class="size-btn on" onclick="toggleSize('超大型')" id="sz-超大型">超大型</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 📊 指標レンジ -->
+    <div class="s-card" id="card-range">
+      <div class="s-card-head" onclick="toggleCard('range')">
+        <span class="s-card-icon">📊</span>
+        <span class="s-card-title">指標フィルター</span>
+        <div class="s-chevron">
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+            <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+      </div>
+      <div class="s-card-body">
+        <div class="s-card-inner">
+          <div class="s-card-inner-pad">
+            <!-- 配当利回り -->
+            <div class="range-row">
+              <div class="range-label">
+                <span class="range-label-name">配当利回り</span>
+                <span class="range-label-val" id="val-dividendYield">0% – 15%</span>
+              </div>
+              <div class="dual-range">
+                <div class="dr-track"><div class="dr-fill" id="fill-dividendYield"></div></div>
+                <input type="range" class="dr-input" id="min-dividendYield" min="0" max="15" step="0.5" value="0"  oninput="updateRange('dividendYield')">
+                <input type="range" class="dr-input" id="max-dividendYield" min="0" max="15" step="0.5" value="15" oninput="updateRange('dividendYield')">
+              </div>
+            </div>
+            <!-- 自己資本比率 -->
+            <div class="range-row">
+              <div class="range-label">
+                <span class="range-label-name">自己資本比率</span>
+                <span class="range-label-val" id="val-equityRatio">0% – 100%</span>
+              </div>
+              <div class="dual-range">
+                <div class="dr-track"><div class="dr-fill" id="fill-equityRatio"></div></div>
+                <input type="range" class="dr-input" id="min-equityRatio" min="0" max="100" step="5" value="0"   oninput="updateRange('equityRatio')">
+                <input type="range" class="dr-input" id="max-equityRatio" min="0" max="100" step="5" value="100" oninput="updateRange('equityRatio')">
+              </div>
+            </div>
+            <!-- 配当性向 -->
+            <div class="range-row">
+              <div class="range-label">
+                <span class="range-label-name">配当性向</span>
+                <span class="range-label-val" id="val-payoutRatio">0% – 100%</span>
+              </div>
+              <div class="dual-range">
+                <div class="dr-track"><div class="dr-fill" id="fill-payoutRatio"></div></div>
+                <input type="range" class="dr-input" id="min-payoutRatio" min="0" max="100" step="5" value="0"   oninput="updateRange('payoutRatio')">
+                <input type="range" class="dr-input" id="max-payoutRatio" min="0" max="100" step="5" value="100" oninput="updateRange('payoutRatio')">
+              </div>
+            </div>
+            <!-- 増配年数 -->
+            <div class="range-row">
+              <div class="range-label">
+                <span class="range-label-name">増配年数</span>
+                <span class="range-label-val" id="val-dividendGrowth">0 – 30年</span>
+              </div>
+              <div class="dual-range">
+                <div class="dr-track"><div class="dr-fill" id="fill-dividendGrowth"></div></div>
+                <input type="range" class="dr-input" id="min-dividendGrowth" min="0" max="30" step="1" value="0"  oninput="updateRange('dividendGrowth')">
+                <input type="range" class="dr-input" id="max-dividendGrowth" min="0" max="30" step="1" value="30" oninput="updateRange('dividendGrowth')">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ⭐ プリセット -->
+    <div class="s-card" id="card-preset">
+      <div class="s-card-head" onclick="toggleCard('preset')">
+        <span class="s-card-icon">⭐</span>
+        <span class="s-card-title">フィルタープリセット</span>
+        <div class="s-chevron">
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+            <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+      </div>
+      <div class="s-card-body">
+        <div class="s-card-inner">
+          <div class="s-card-inner-pad">
+            <div class="preset-list">
+              <div class="preset-row" id="preset-row-1">
+                <div class="preset-slot" id="preset-slot-1">A</div>
+                <input class="preset-name" id="preset-name-1" type="text" placeholder="プリセット A" maxlength="16">
+                <button class="preset-btn load" onclick="loadPreset(1)" id="preset-load-1" disabled>適用</button>
+                <button class="preset-btn save" onclick="savePreset(1)">保存</button>
+              </div>
+              <div class="preset-row" id="preset-row-2">
+                <div class="preset-slot" id="preset-slot-2">B</div>
+                <input class="preset-name" id="preset-name-2" type="text" placeholder="プリセット B" maxlength="16">
+                <button class="preset-btn load" onclick="loadPreset(2)" id="preset-load-2" disabled>適用</button>
+                <button class="preset-btn save" onclick="savePreset(2)">保存</button>
+              </div>
+              <div class="preset-row" id="preset-row-3">
+                <div class="preset-slot" id="preset-slot-3">C</div>
+                <input class="preset-name" id="preset-name-3" type="text" placeholder="プリセット C" maxlength="16">
+                <button class="preset-btn load" onclick="loadPreset(3)" id="preset-load-3" disabled>適用</button>
+                <button class="preset-btn save" onclick="savePreset(3)">保存</button>
+              </div>
+            </div>
+            <p style="font-size:10px;color:var(--text-muted);margin-top:10px;font-family:var(--font-mono);line-height:1.5;">
+              現在のフィルター状態を名前をつけて保存。<br>ブラウザに記録されます。
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </aside><!-- /sidebar -->
+
+  <!-- ═══ RIGHT: Article list ═══ -->
+  <main>
+    <div class="article-card">
+      <div class="panel-header">
+        <span class="panel-date-label" id="panelDate">すべての記事</span>
+        <span class="panel-count" id="panelCount">0 件</span>
+        <button class="panel-clear" id="panelClearBtn" onclick="clearDate()" style="display:none">日付解除 ×</button>
+      </div>
+      <div class="article-list" id="articleList"></div>
+      <div class="pagination" id="pagination" style="display:none"></div>
+    </div>
+  </main>
+
+</div>
+</div><!-- /wrapper -->
+
+<script>
+// =============================================
+// ★ BLOG_JP_DATA — Python自動書き込みエリア（日本株）
+// ★ フィールド一覧:
+//   date, code, name, tags[], url, prevUrl
+//   fy, period
+//   dividendYield(%), per(倍), pbr(倍), roe(%)
+//   marketCap(億円), equityRatio(%), payoutRatio(%), dividendGrowth(年)
+//   operatingMargin(%) ★追加推奨
+// =============================================
+const BLOG_JP_DATA = [
+  { date:"2026-04-11", code:"5129", name:"ＦＩＸＥＲ",       tags:["高配当株"], url:"blog/5129_ＦＩＸＥＲ_2.html",       prevUrl:null, fy:"2025", period:"3Q", dividendYield:null, per:null, pbr:null, roe:null, marketCap:null, equityRatio:null, payoutRatio:null, dividendGrowth:null },
+  { date:"2026-04-11", code:"7487", name:"小津産業",          tags:["高配当株"], url:"blog/7487_小津産業_2.html",          prevUrl:null, fy:"2025", period:"3Q", dividendYield:null, per:null, pbr:null, roe:null, marketCap:null, equityRatio:null, payoutRatio:null, dividendGrowth:null },
+  { date:"2026-04-11", code:"7725", name:"インターアクシ",    tags:["高配当株"], url:"blog/7725_インターアクシ_2.html",    prevUrl:null, fy:"2025", period:"3Q", dividendYield:null, per:null, pbr:null, roe:null, marketCap:null, equityRatio:null, payoutRatio:null, dividendGrowth:null },
+  { date:"2026-04-11", code:"3501", name:"ＳＵＭＩＮＯＥ",   tags:["高配当株"], url:"blog/3501_ＳＵＭＩＮＯＥ_2.html",   prevUrl:null, fy:"2025", period:"3Q", dividendYield:null, per:null, pbr:null, roe:null, marketCap:null, equityRatio:null, payoutRatio:null, dividendGrowth:null },
+  { date:"2026-04-11", code:"9216", name:"ビーウィズ",        tags:["高配当株"], url:"blog/9216_ビーウィズ_2.html",        prevUrl:null, fy:"2025", period:"3Q", dividendYield:null, per:null, pbr:null, roe:null, marketCap:null, equityRatio:null, payoutRatio:null, dividendGrowth:null },
+  { date:"2026-04-11", code:"4760", name:"アルファ",          tags:["高配当株"], url:"blog/4760_アルファ_2.html",          prevUrl:null, fy:"2025", period:"3Q", dividendYield:null, per:null, pbr:null, roe:null, marketCap:null, equityRatio:null, payoutRatio:null, dividendGrowth:null },
+  { date:"2026-04-11", code:"3063", name:"ジェイグループＨ",  tags:["高配当株"], url:"blog/3063_ジェイグループＨ_2.html",  prevUrl:null, fy:"2025", period:"3Q", dividendYield:null, per:null, pbr:null, roe:null, marketCap:null, equityRatio:null, payoutRatio:null, dividendGrowth:null },
+  { date:"2026-04-11", code:"7514", name:"ヒマラヤ",          tags:["高配当株"], url:"blog/7514_ヒマラヤ_2.html",          prevUrl:null, fy:"2025", period:"3Q", dividendYield:null, per:null, pbr:null, roe:null, marketCap:null, equityRatio:null, payoutRatio:null, dividendGrowth:null },
+  { date:"2026-04-11", code:"9647", name:"協和コンサル",      tags:["高配当株"], url:"blog/9647_協和コンサル_2.html",      prevUrl:null, fy:"2025", period:"3Q", dividendYield:null, per:null, pbr:null, roe:null, marketCap:null, equityRatio:null, payoutRatio:null, dividendGrowth:null },
+  { date:"2026-04-11", code:"8931", name:"和田興産",          tags:["高配当株"], url:"blog/8931_和田興産_2.html",          prevUrl:null, fy:"2025", period:"3Q", dividendYield:null, per:null, pbr:null, roe:null, marketCap:null, equityRatio:null, payoutRatio:null, dividendGrowth:null },
+  { date:"2026-04-11", code:"8166", name:"タカキュー",        tags:["高配当株"], url:"blog/8166_タカキュー_2.html",        prevUrl:null, fy:"2025", period:"3Q", dividendYield:null, per:null, pbr:null, roe:null, marketCap:null, equityRatio:null, payoutRatio:null, dividendGrowth:null },
+  { date:"2026-04-11", code:"4076", name:"シイエヌエス",      tags:["高配当株"], url:"blog/4076_シイエヌエス_2.html",      prevUrl:null, fy:"2025", period:"3Q", dividendYield:null, per:null, pbr:null, roe:null, marketCap:null, equityRatio:null, payoutRatio:null, dividendGrowth:null },
+  { date:"2026-04-11", code:"2872", name:"セイヒョー",        tags:["高配当株"], url:"blog/2872_セイヒョー_2.html",        prevUrl:null, fy:"2025", period:"3Q", dividendYield:null, per:null, pbr:null, roe:null, marketCap:null, equityRatio:null, payoutRatio:null, dividendGrowth:null },
+  { date:"2026-04-11", code:"6555", name:"ＭＳ＆コンサル",   tags:["高配当株"], url:"blog/6555_ＭＳ＆コンサル_2.html",   prevUrl:null, fy:"2025", period:"3Q", dividendYield:null, per:null, pbr:null, roe:null, marketCap:null, equityRatio:null, payoutRatio:null, dividendGrowth:null },
+  { date:"2026-04-11", code:"3280", name:"エストラスト",      tags:["高配当株"], url:"blog/3280_エストラスト_2.html",      prevUrl:null, fy:"2025", period:"3Q", dividendYield:null, per:null, pbr:null, roe:null, marketCap:null, equityRatio:null, payoutRatio:null, dividendGrowth:null },
+  { date:"2026-04-11", code:"6489", name:"前澤工業",          tags:["高配当株"], url:"blog/6489_前澤工業_2.html",          prevUrl:null, fy:"2025", period:"3Q", dividendYield:null, per:null, pbr:null, roe:null, marketCap:null, equityRatio:null, payoutRatio:null, dividendGrowth:null },
+  { date:"2026-04-11", code:"6289", name:"技研製作所",        tags:["高配当株"], url:"blog/6289_技研製作所_2.html",        prevUrl:null, fy:"2025", period:"3Q", dividendYield:null, per:null, pbr:null, roe:null, marketCap:null, equityRatio:null, payoutRatio:null, dividendGrowth:null },
+  { date:"2026-04-11", code:"8185", name:"チヨダ",            tags:["高配当株"], url:"blog/8185_チヨダ_2.html",            prevUrl:null, fy:"2025", period:"3Q", dividendYield:null, per:null, pbr:null, roe:null, marketCap:null, equityRatio:null, payoutRatio:null, dividendGrowth:null },
+  { date:"2026-04-11", code:"2164", name:"地域新聞社",        tags:["高配当株"], url:"blog/2164_地域新聞社_2.html",        prevUrl:null, fy:"2025", period:"3Q", dividendYield:null, per:null, pbr:null, roe:null, marketCap:null, equityRatio:null, payoutRatio:null, dividendGrowth:null },
+  { date:"2026-04-11", code:"8908", name:"毎日コムネット",    tags:["高配当株"], url:"blog/8908_毎日コムネット_2.html",    prevUrl:null, fy:"2025", period:"3Q", dividendYield:null, per:null, pbr:null, roe:null, marketCap:null, equityRatio:null, payoutRatio:null, dividendGrowth:null },
+  { date:"2026-04-11", code:"8244", name:"近鉄百貨店",        tags:["高配当株"], url:"blog/8244_近鉄百貨店_2.html",        prevUrl:null, fy:"2025", period:"3Q", dividendYield:null, per:null, pbr:null, roe:null, marketCap:null, equityRatio:null, payoutRatio:null, dividendGrowth:null },
+  { date:"2026-04-11", code:"3546", name:"アレンザＨ",        tags:["高配当株"], url:"blog/3546_アレンザＨ_2.html",        prevUrl:null, fy:"2025", period:"3Q", dividendYield:null, per:null, pbr:null, roe:null, marketCap:null, equityRatio:null, payoutRatio:null, dividendGrowth:null },
+  { date:"2026-04-11", code:"9270", name:"バリュエンスＨ",    tags:["高配当株"], url:"blog/9270_バリュエンスＨ_2.html",    prevUrl:null, fy:"2025", period:"3Q", dividendYield:null, per:null, pbr:null, roe:null, marketCap:null, equityRatio:null, payoutRatio:null, dividendGrowth:null },
+  { date:"2026-04-11", code:"5982", name:"マルゼン",          tags:["高配当株"], url:"blog/5982_マルゼン_2.html",          prevUrl:null, fy:"2025", period:"3Q", dividendYield:null, per:null, pbr:null, roe:null, marketCap:null, equityRatio:null, payoutRatio:null, dividendGrowth:null },
+  { date:"2026-04-11", code:"4992", name:"北興化学工業",      tags:["高配当株"], url:"blog/4992_北興化学工業_2.html",      prevUrl:null, fy:"2025", period:"3Q", dividendYield:null, per:null, pbr:null, roe:null, marketCap:null, equityRatio:null, payoutRatio:null, dividendGrowth:null },
+  { date:"2026-04-11", code:"4668", name:"明光ネットワーク",  tags:["高配当株"], url:"blog/4668_明光ネットワーク_2.html",  prevUrl:null, fy:"2025", period:"3Q", dividendYield:null, per:null, pbr:null, roe:null, marketCap:null, equityRatio:null, payoutRatio:null, dividendGrowth:null },
+  { date:"2026-04-11", code:"7811", name:"中本パックス",      tags:["高配当株"], url:"blog/7811_中本パックス_2.html",      prevUrl:null, fy:"2025", period:"3Q", dividendYield:null, per:null, pbr:null, roe:null, marketCap:null, equityRatio:null, payoutRatio:null, dividendGrowth:null },
+  { date:"2026-04-11", code:"4577", name:"ダイト",            tags:["高配当株"], url:"blog/4577_ダイト_2.html",            prevUrl:null, fy:"2025", period:"3Q", dividendYield:null, per:null, pbr:null, roe:null, marketCap:null, equityRatio:null, payoutRatio:null, dividendGrowth:null },
+  { date:"2026-04-11", code:"1419", name:"タマホーム",        tags:["バリュー株","高配当株"], url:"blog/1419_タマホーム_2.html", prevUrl:null, fy:"2025", period:"3Q", dividendYield:null, per:null, pbr:null, roe:null, marketCap:null, equityRatio:null, payoutRatio:null, dividendGrowth:null },
+];
+const BLOG_US_DATA = [];
+// =============================================
+
+const ALL_TAGS = ['高配当株','バリュー株','成長株','優待株','割安株','テーマ株','ディフェンシブ','景気敏感','その他'];
+const PRESET_KEY = 'kessan-lib-preset';
+const RANGE_KEYS = ['dividendYield','equityRatio','payoutRatio','dividendGrowth'];
+const RANGE_META = {
+  dividendYield:  { fmt: v => v+'%' },
+  equityRatio:    { fmt: v => v+'%' },
+  payoutRatio:    { fmt: v => v+'%' },
+  dividendGrowth: { fmt: v => v+'年' },
+};
+
+let currentTab    = 'jp';
+let activeTags    = new Set();
+let disabledSizes = new Set();
+let selectedDate  = null;
+let calYear, calMonth;
+let currentPage   = 1;
+const PAGE_SIZE   = 30;
+
+const TODAY = (() => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+})();
+
+const HOLIDAYS = new Set([
+  '2025-01-01','2025-01-13','2025-02-11','2025-02-23','2025-02-24',
+  '2025-03-20','2025-04-29','2025-05-03','2025-05-04','2025-05-05','2025-05-06',
+  '2025-07-21','2025-08-11','2025-09-15','2025-09-23','2025-10-13',
+  '2025-11-03','2025-11-23','2025-11-24',
+  '2026-01-01','2026-01-12','2026-02-11','2026-02-23',
+  '2026-03-20','2026-04-29','2026-05-03','2026-05-04','2026-05-05','2026-05-06',
+  '2026-07-20','2026-08-11','2026-09-21','2026-09-23','2026-10-12',
+  '2026-11-03','2026-11-23',
+]);
+
+// ── Normalize ──
+function normalize(str) {
+  if (!str) return '';
+  let s = str.replace(/[Ａ-Ｚａ-ｚ０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0));
+  s = s.replace(/[\u30A1-\u30F6]/g, c => String.fromCharCode(c.charCodeAt(0) - 0x60));
+  return s.toLowerCase();
+}
+function capSize(v) {
+  if (v==null) return null;
+  if (v<300)   return '小型';
+  if (v<3000)  return '中型';
+  if (v<10000) return '大型';
+  return '超大型';
+}
+function getTags(r) { return Array.isArray(r.tags) ? r.tags : (r.type ? [r.type] : ['その他']); }
+function currentData() { return currentTab==='jp' ? BLOG_JP_DATA : BLOG_US_DATA; }
+
+// ── Collapsible cards ──
+function toggleCard(id) {
+  document.getElementById('card-'+id).classList.toggle('collapsed');
+}
+
+// ── ナビカテゴリ定義 ──
+const NAV_CATS = [
+  { tag:'高配当株',   emoji:'💰', img:'img/高配当株.jpeg'  },
+  { tag:'優待株',     emoji:'🎁', img:'img/優待株.jpeg'    },
+  { tag:'連続増配株', emoji:'📈', img:'img/連続増配.jpeg'  },
+  { tag:'減配リスク株',emoji:'⚠️', img:null                },
+  { tag:'割安株',     emoji:'🏷', img:null                },
+  { tag:'成長株',     emoji:'🚀', img:null                },
+  { tag:'大型株',     emoji:'🏢', img:'img/大型株.jpeg'    },
+  { tag:'小型株',     emoji:'🌱', img:'img/小型株.jpeg'    },
+  { tag:'上方修正',   emoji:'⬆️', img:'img/上方修正.jpeg' },
+  { tag:'下方修正',   emoji:'⬇️', img:'img/下方修正.jpeg' },
+];
+
+const TAG_COLORS = {
+  '高配当株':'#059669','優待株':'#7c3aed','連続増配株':'#16a34a',
+  '減配リスク株':'#e11d48','割安株':'#d97706','成長株':'#2563eb',
+  '大型株':'#22c55e','小型株':'#a855f7','上方修正':'#3b82f6','下方修正':'#f97316',
+  'ディフェンシブ':'#0891b2','景気敏感':'#dc2626','その他':'#64748b',
+};
+
+// ── ナビバーを動的生成 ──
+function buildNavCats() {
+  const container = document.getElementById('navCats');
+  if (!container) return;
+
+  container.innerHTML = NAV_CATS.map(({ tag, emoji, img }) => {
+    const imgTag = img
+      ? `<img src="${img}" alt="${tag}" onload="this.classList.add('loaded')">`
+      : '';
+    return `
+    <div class="nav-item" data-tag="${tag}">
+      <button class="nav-btn">${tag} <span class="nav-chevron-icon">▾</span></button>
+      <div class="mega-menu">
+        <div class="mega-inner">
+          <div class="mega-hero">
+            ${imgTag}
+            <div class="mega-hero-fallback"><span>${emoji}</span><span class="mega-hero-label">${tag}</span></div>
+          </div>
+          <div class="mega-articles" id="mega-${tag}"></div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // トラックパッド横スクロール（Shift+ホイールを追加でも対応）
+  container.addEventListener('wheel', e => {
+    if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return; // 横スクロールはそのまま
+    if (e.deltaY !== 0) {
+      e.preventDefault();
+      container.scrollBy({ left: e.deltaY * 1.5, behavior: 'smooth' });
+    }
+  }, { passive: false });
+}
+
+// ── メガメニュー記事を注入 ──
+function buildMegaMenus() {
+  NAV_CATS.forEach(({ tag }) => {
+    const el = document.getElementById('mega-'+tag);
+    if (!el) return;
+    const articles = currentData()
+      .filter(r => getTags(r).includes(tag))
+      .sort((a,b) => b.date.localeCompare(a.date))
+      .slice(0, 6);
+
+    if (!articles.length) {
+      el.innerHTML = '<div class="mega-empty">記事を準備中…</div>'; return;
+    }
+
+    const color = TAG_COLORS[tag] || '#64748b';
+    el.innerHTML = articles.map(r => {
+      const initial = (r.name||'?').replace(/[Ａ-Ｚａ-ｚ]/g,c=>String.fromCharCode(c.charCodeAt(0)-0xFEE0))[0];
+      const period  = (r.fy&&r.period) ? r.fy+r.period : '';
+      return `<a class="mega-art" href="${r.url}" target="_blank" rel="noopener"
+               onclick="event.stopPropagation()">
+        <div class="mega-thumb" style="background:${color}22;color:${color}">${initial}</div>
+        <div class="mega-art-info">
+          <div class="mega-art-name">${r.name}</div>
+          <div class="mega-art-meta">
+            <span>${r.code||''}</span>
+            ${period?`<span>${period}</span>`:''}
+            <span>${r.date.slice(5).replace('-','/')}</span>
+          </div>
+        </div>
+      </a>`;
+    }).join('');
+  });
+}
+
+// ナビバー検索 → メインの検索と同期
+function syncNavSearch(val) {
+  const main = document.getElementById('searchInput');
+  if (main) { main.value = val; render(); }
+}
+
+// showTab のナビバーボタンも連動
+function updateNavFlags(tab) {
+  ['jp','us'].forEach(t => {
+    const b = document.getElementById('nav-btn-'+t);
+    if (b) b.classList.toggle('active', t===tab);
+  });
+}
+
+// ── カテゴリ選択（メガメニューからも呼ぶ用） ──
+function selectCategory(tag) {
+  // タグを単独選択
+  activeTags = new Set([tag]);
+  selectedDate = null;
+  buildTagUI();
+  renderCalendar();
+  render();
+  // 記事パネルへスクロール
+  document.querySelector('.article-card').scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+// ── Tag UI ──
+function buildTagUI() {
+  const data = currentData();
+  const used = new Set(data.flatMap(r => getTags(r)));
+  const tags = ALL_TAGS.filter(t => used.has(t));
+  document.getElementById('typeTags').innerHTML = tags.map(t =>
+    `<button class="tag-btn${activeTags.size && !activeTags.has(t) ? ' off' : ''}"
+      data-tag="${t}" onclick="toggleTag('${t}')">${t}</button>`
+  ).join('');
+}
+function toggleTag(t) {
+  activeTags.has(t) ? activeTags.delete(t) : activeTags.add(t);
+  currentPage=1; buildTagUI(); render();
+}
+
+// ── Size ──
+function toggleSize(sz) {
+  const btn = document.getElementById('sz-'+sz);
+  disabledSizes.has(sz) ? (disabledSizes.delete(sz), btn.className='size-btn on')
+                        : (disabledSizes.add(sz),    btn.className='size-btn off');
+  currentPage=1; render();
+}
+
+// ── Tab ──
+function showTab(tab) {
+  currentTab = tab; activeTags.clear(); selectedDate = null;
+  ['jp','us'].forEach(t => {
+    const b=document.getElementById('btn-'+t); if(b) b.classList.toggle('active', t===tab);
+  });
+  updateNavFlags(tab);
+  buildTagUI(); renderCalendar(); render(); buildMegaMenus(); // ナビはDOMに存在するのでbuildNavCats不要
+}
+
+// ── Clear ──
+function clearAll() {
+  document.getElementById('searchInput').value = '';
+  activeTags.clear(); disabledSizes.clear(); selectedDate = null; currentPage=1;
+  ['小型','中型','大型','超大型'].forEach(s => document.getElementById('sz-'+s).className='size-btn on');
+  RANGE_KEYS.forEach(k => {
+    const mn=document.getElementById('min-'+k), mx=document.getElementById('max-'+k);
+    mn.value=mn.min; mx.value=mx.max; updateRange(k);
+  });
+  buildTagUI(); renderCalendar(); render();
+}
+function clearDate() { selectedDate=null; currentPage=1; renderCalendar(); render(); }
+
+// ── Dual range ──
+function updateRange(key) {
+  const mn=document.getElementById('min-'+key), mx=document.getElementById('max-'+key);
+  const fill=document.getElementById('fill-'+key), val=document.getElementById('val-'+key);
+  let minV=parseFloat(mn.value), maxV=parseFloat(mx.value);
+  if (minV > maxV) {
+    if (event && event.target===mn) { mn.value=maxV; minV=maxV; }
+    else                            { mx.value=minV; maxV=minV; }
+  }
+  const total = parseFloat(mn.max)-parseFloat(mn.min);
+  fill.style.left  = ((minV-parseFloat(mn.min))/total*100)+'%';
+  fill.style.right = ((parseFloat(mn.max)-maxV)/total*100)+'%';
+  val.textContent = RANGE_META[key].fmt(minV)+' – '+RANGE_META[key].fmt(maxV);
+  render();
+}
+function isDefaultRange(key) {
+  const mn=document.getElementById('min-'+key), mx=document.getElementById('max-'+key);
+  return parseFloat(mn.value)===parseFloat(mn.min) && parseFloat(mx.value)===parseFloat(mx.max);
+}
+function inRange(v, key) {
+  if (v==null || isDefaultRange(key)) return true;
+  const mn=parseFloat(document.getElementById('min-'+key).value);
+  const mx=parseFloat(document.getElementById('max-'+key).value);
+  return v>=mn && v<=mx;
+}
+
+// ── Presets ──
+function getPresetState() {
+  return {
+    activeTags:   [...activeTags],
+    disabledSizes:[...disabledSizes],
+    ranges: Object.fromEntries(RANGE_KEYS.map(k => [k, {
+      min: parseFloat(document.getElementById('min-'+k).value),
+      max: parseFloat(document.getElementById('max-'+k).value),
+    }])),
+  };
+}
+
+function savePreset(n) {
+  const name = document.getElementById('preset-name-'+n).value.trim() || `プリセット${['A','B','C'][n-1]}`;
+  document.getElementById('preset-name-'+n).value = name;
+  const data = { name, state: getPresetState() };
+  try { localStorage.setItem(PRESET_KEY+'-'+n, JSON.stringify(data)); } catch(e) {}
+  // Update UI
+  document.getElementById('preset-slot-'+n).parentElement.classList.add('has-data');
+  document.getElementById('preset-load-'+n).disabled = false;
+  // Flash
+  const row = document.getElementById('preset-row-'+n);
+  row.classList.add('saving');
+  setTimeout(() => row.classList.remove('saving'), 400);
+}
+
+function loadPreset(n) {
+  let raw;
+  try { raw = localStorage.getItem(PRESET_KEY+'-'+n); } catch(e) {}
+  if (!raw) return;
+  const { state } = JSON.parse(raw);
+  activeTags   = new Set(state.activeTags || []);
+  disabledSizes = new Set(state.disabledSizes || []);
+  ['小型','中型','大型','超大型'].forEach(s =>
+    document.getElementById('sz-'+s).className = 'size-btn '+(disabledSizes.has(s)?'off':'on')
+  );
+  Object.entries(state.ranges || {}).forEach(([k,v]) => {
+    document.getElementById('min-'+k).value = v.min;
+    document.getElementById('max-'+k).value = v.max;
+    updateRange(k);
+  });
+  buildTagUI(); render();
+}
+
+function initPresets() {
+  [1,2,3].forEach(n => {
+    let raw;
+    try { raw = localStorage.getItem(PRESET_KEY+'-'+n); } catch(e) {}
+    if (!raw) return;
+    const { name } = JSON.parse(raw);
+    document.getElementById('preset-name-'+n).value = name;
+    document.getElementById('preset-row-'+n).classList.add('has-data');
+    document.getElementById('preset-load-'+n).disabled = false;
+  });
+}
+
+// ── Calendar ──
+function renderCalendar() {
+  document.getElementById('calTitle').textContent = `${calYear}年${calMonth+1}月`;
+  const dots = new Set(currentData().map(r => r.date));
+  const first = new Date(calYear, calMonth, 1).getDay();
+  const days  = new Date(calYear, calMonth+1, 0).getDate();
+  let html = ['日','月','火','水','木','金','土'].map((d,i) =>
+    `<div class="cal-dow ${i===0?'sun':i===6?'sat':''}">${d}</div>`).join('');
+  for (let i=0;i<first;i++) html+=`<div class="cal-cell empty"></div>`;
+  for (let d=1;d<=days;d++) {
+    const mm=String(calMonth+1).padStart(2,'0'), dd=String(d).padStart(2,'0');
+    const key=`${calYear}-${mm}-${dd}`;
+    const dow=(first+d-1)%7;
+    let cls='cal-cell';
+    if (dow===0||HOLIDAYS.has(key)) cls+=' sun holiday'; else if (dow===6) cls+=' sat';
+    if (key===TODAY) cls+=' today';
+    if (key===selectedDate && key!==TODAY) cls+=' selected';
+    html+=`<div class="${cls}" onclick="selectDate('${key}')">
+      <span class="cal-num">${d}</span>
+      ${dots.has(key)?'<span class="cal-dot"></span>':'<span style="width:3px;height:3px"></span>'}
+    </div>`;
+  }
+  document.getElementById('calGrid').innerHTML = html;
+}
+function moveMonth(delta) {
+  calMonth+=delta;
+  if(calMonth<0){calMonth=11;calYear--;} if(calMonth>11){calMonth=0;calYear++;}
+  renderCalendar();
+}
+function selectDate(dateStr) {
+  selectedDate = (selectedDate===dateStr) ? null : dateStr;
+  currentPage=1; renderCalendar(); render();
+}
+
+// ── Render articles ──
+function render() {
+  const data = currentData();
+  const q = normalize(document.getElementById('searchInput').value.trim());
+  const rows = data.filter(r => {
+    const tags = getTags(r);
+    if (activeTags.size && !tags.some(t => activeTags.has(t))) return false;
+    if (selectedDate && r.date!==selectedDate) return false;
+    const sz = capSize(r.marketCap);
+    if (sz && disabledSizes.has(sz)) return false;
+    if (!inRange(r.dividendYield,'dividendYield')) return false;
+    if (!inRange(r.equityRatio,  'equityRatio'))   return false;
+    if (!inRange(r.payoutRatio,  'payoutRatio'))   return false;
+    if (!inRange(r.dividendGrowth,'dividendGrowth')) return false;
+    if (q) {
+      const code=normalize(r.code||r.ticker||''), name=normalize(r.name||'');
+      if (!code.includes(q) && !name.includes(q) && !r.date.includes(q)) return false;
+    }
+    return true;
+  }).sort((a,b) => b.date.localeCompare(a.date));
+
+  // ページネーション計算
+  const total     = rows.length;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  currentPage = Math.min(currentPage, totalPages);
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const displayRows = rows.slice(start, start + PAGE_SIZE);
+
+  // パネルヘッダー
+  if (selectedDate) {
+    const [y,m,d]=selectedDate.split('-');
+    document.getElementById('panelDate').textContent=`${y}年${parseInt(m)}月${parseInt(d)}日`;
+    document.getElementById('panelClearBtn').style.display='';
+  } else {
+    document.getElementById('panelDate').textContent='すべての記事';
+    document.getElementById('panelClearBtn').style.display='none';
+  }
+  document.getElementById('panelCount').textContent=
+    `${total} 件 / ${currentPage}/${totalPages}ページ`;
+
+  const list = document.getElementById('articleList');
+  const pgEl = document.getElementById('pagination');
+
+  if (!displayRows.length) {
+    list.innerHTML=`<div class="empty-state"><div class="icon">🔍</div><p>該当する記事が見つかりません</p></div>`;
+    pgEl.style.display='none';
+    return;
+  }
+
+  const fmt=(v,unit,dec=1)=>v==null?'—':`${Number(v).toFixed(dec)}${unit}`;
+  list.innerHTML = displayRows.map((r,i) => {
+    const tags=getTags(r), tc=tags[0]||'その他';
+    const period=(r.fy&&r.period)?`${r.fy}${r.period}`:'';
+    const sz=capSize(r.marketCap);
+    return `<div class="article-row" style="animation-delay:${i*16}ms">
+      <div class="type-dot ${tc}"></div>
+      <div>
+        <div class="article-top">
+          <span class="article-name">${r.name}</span>
+          <span class="article-code">${r.code||r.ticker||''}</span>
+          ${period?`<span class="article-period">${period}</span>`:''}
+          ${tags.map(t=>`<span class="article-tag ${t}">${t}</span>`).join('')}
+        </div>
+        <div class="article-metrics">
+          <span class="metric">配当 <b>${fmt(r.dividendYield,'%')}</b></span>
+          <span class="metric">PER <b>${fmt(r.per,'×')}</b></span>
+          <span class="metric">PBR <b>${fmt(r.pbr,'×')}</b></span>
+          <span class="metric">ROE <b>${fmt(r.roe,'%')}</b></span>
+          <span class="metric">時価総額 <b>${r.marketCap!=null?r.marketCap+'億'+(sz?` (${sz})`:''):'—'}</b></span>
+        </div>
+      </div>
+      <div class="article-actions">
+        <a class="action-btn primary" href="${r.url}" target="_blank" rel="noopener">記事 →</a>
+        ${r.prevUrl?`<a class="action-btn" href="${r.prevUrl}" target="_blank" rel="noopener">← 前期</a>`:''}
+      </div>
+    </div>`;
+  }).join('');
+
+  // ページネーションUI
+  if (totalPages <= 1) { pgEl.style.display='none'; return; }
+  pgEl.style.display='flex';
+
+  // 表示するページ番号を計算（現在ページ周辺5枚 + 両端）
+  const pages = new Set([1, totalPages, currentPage]);
+  for (let p=currentPage-2; p<=currentPage+2; p++) { if(p>=1&&p<=totalPages) pages.add(p); }
+  const sorted = [...pages].sort((a,b)=>a-b);
+
+  let html = `<button class="pg-btn" onclick="goPage(${currentPage-1})" ${currentPage===1?'disabled':''}>‹</button>`;
+  let prev = 0;
+  sorted.forEach(p => {
+    if (p - prev > 1) html += `<span class="pg-ellipsis">…</span>`;
+    html += `<button class="pg-btn ${p===currentPage?'active':''}" onclick="goPage(${p})">${p}</button>`;
+    prev = p;
+  });
+  html += `<button class="pg-btn" onclick="goPage(${currentPage+1})" ${currentPage===totalPages?'disabled':''}>›</button>`;
+  pgEl.innerHTML = html;
+}
+
+function goPage(p) {
+  currentPage = p;
+  render();
+  // 記事パネルの先頭へスクロール
+  document.querySelector('.article-card').scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+// ── Init ──
+(function init() {
+  const now=new Date(); calYear=now.getFullYear(); calMonth=now.getMonth();
+  selectedDate=null; // 日付フィルターなしで最新30件表示
+  RANGE_KEYS.forEach(k => updateRange(k));
+  buildNavCats(); // ナビ先に生成してからメガメニュー注入
+  buildTagUI(); renderCalendar(); render(); initPresets(); buildMegaMenus();
+})();
+</script>
+</body>
+</html>
